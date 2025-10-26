@@ -290,7 +290,7 @@ This project is for educational and personal use.
 
 ## 👨‍💻 Author
 
-Built with ❤️ using Flask & MongoDB
+Built by Krishna Naicker
 
 ## 🆘 Support
 
