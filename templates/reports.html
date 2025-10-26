@@ -1,0 +1,270 @@
+{% extends "base.html" %}
+
+{% block title %}Reports - Expense Tracker{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="fas fa-chart-line"></i> Financial Reports</h1>
+    <p class="subtitle">Analyze your spending and income trends</p>
+</div>
+
+<!-- Period Statistics -->
+<div class="period-stats">
+    <div class="stat-card">
+        <div class="stat-header">
+            <h3>This Month</h3>
+            <i class="fas fa-calendar-day"></i>
+        </div>
+        <div class="stat-body">
+            <div class="stat-row">
+                <span>Income:</span>
+                <span class="positive">{{ month_stats.income|currency }}</span>
+            </div>
+            <div class="stat-row">
+                <span>Expenses:</span>
+                <span class="negative">{{ month_stats.expenses|currency }}</span>
+            </div>
+            <div class="stat-row total">
+                <span>Balance:</span>
+                <span class="{% if month_stats.balance >= 0 %}positive{% else %}negative{% endif %}">
+                    {{ month_stats.balance|currency }}
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-header">
+            <h3>This Year</h3>
+            <i class="fas fa-calendar-alt"></i>
+        </div>
+        <div class="stat-body">
+            <div class="stat-row">
+                <span>Income:</span>
+                <span class="positive">{{ year_stats.income|currency }}</span>
+            </div>
+            <div class="stat-row">
+                <span>Expenses:</span>
+                <span class="negative">{{ year_stats.expenses|currency }}</span>
+            </div>
+            <div class="stat-row total">
+                <span>Balance:</span>
+                <span class="{% if year_stats.balance >= 0 %}positive{% else %}negative{% endif %}">
+                    {{ year_stats.balance|currency }}
+                </span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts -->
+<div class="reports-grid">
+    <!-- Monthly Trend Chart -->
+    <div class="card chart-card-large">
+        <div class="card-header">
+            <h2><i class="fas fa-chart-line"></i> Income vs Expenses Trend</h2>
+            <span class="card-subtitle">Last 6 months</span>
+        </div>
+        <div class="card-body">
+            <canvas id="trendChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Category Breakdown Chart -->
+    <div class="card">
+        <div class="card-header">
+            <h2><i class="fas fa-chart-pie"></i> Expense Distribution</h2>
+            <span class="card-subtitle">This month by category</span>
+        </div>
+        <div class="card-body">
+            {% if category_data %}
+            <canvas id="categoryPieChart"></canvas>
+            {% else %}
+            <div class="no-data">
+                <i class="fas fa-inbox"></i>
+                <p>No expense data for this month</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Category Breakdown Table -->
+{% if category_data %}
+<div class="card">
+    <div class="card-header">
+        <h2><i class="fas fa-table"></i> Category Breakdown</h2>
+        <span class="card-subtitle">This month</span>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="category-table">
+                <thead>
+                    <tr>
+                        <th>Category</th>
+                        <th class="text-right">Amount</th>
+                        <th class="text-right">Percentage</th>
+                        <th>Visual</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% set total = category_data.values()|sum %}
+                    {% for category, amount in category_data.items() %}
+                    <tr>
+                        <td><strong>{{ category }}</strong></td>
+                        <td class="text-right">{{ amount|currency }}</td>
+                        <td class="text-right">{{ ((amount / total * 100)|round(1)) }}%</td>
+                        <td>
+                            <div class="mini-progress">
+                                <div class="mini-progress-bar" style="width: {{ (amount / total * 100) }}%"></div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    <tr class="total-row">
+                        <td><strong>Total</strong></td>
+                        <td class="text-right"><strong>{{ total|currency }}</strong></td>
+                        <td class="text-right"><strong>100%</strong></td>
+                        <td></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Chart.js Scripts -->
+<script>
+    // Monthly Trend Chart
+    const monthlyData = {{ monthly_data|tojson }};
+    const months = monthlyData.map(item => item.month);
+    const incomeData = monthlyData.map(item => item.income);
+    const expenseData = monthlyData.map(item => item.expenses);
+
+    const trendCtx = document.getElementById('trendChart').getContext('2d');
+    new Chart(trendCtx, {
+        type: 'line',
+        data: {
+            labels: months,
+            datasets: [
+                {
+                    label: 'Income',
+                    data: incomeData,
+                    borderColor: '#2ecc71',
+                    backgroundColor: 'rgba(46, 204, 113, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                },
+                {
+                    label: 'Expenses',
+                    data: expenseData,
+                    borderColor: '#e74c3c',
+                    backgroundColor: 'rgba(231, 76, 60, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    position: 'top',
+                    labels: {
+                        color: '#e0e0e0',
+                        padding: 15,
+                        font: {
+                            size: 14,
+                            family: 'Poppins'
+                        }
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return context.dataset.label + ': $' + context.parsed.y.toFixed(2);
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        color: '#e0e0e0',
+                        callback: function(value) {
+                            return '$' + value.toFixed(0);
+                        }
+                    },
+                    grid: {
+                        color: 'rgba(255, 255, 255, 0.1)'
+                    }
+                },
+                x: {
+                    ticks: {
+                        color: '#e0e0e0'
+                    },
+                    grid: {
+                        color: 'rgba(255, 255, 255, 0.1)'
+                    }
+                }
+            }
+        }
+    });
+
+    {% if category_data %}
+    // Category Pie Chart
+    const categoryData = {{ category_data|tojson }};
+    const categoryLabels = Object.keys(categoryData);
+    const categoryValues = Object.values(categoryData);
+    
+    const colors = [
+        '#3282b8', '#0f4c75', '#2ecc71', '#e74c3c', 
+        '#f39c12', '#9b59b6', '#1abc9c', '#34495e'
+    ];
+    
+    const pieCtx = document.getElementById('categoryPieChart').getContext('2d');
+    new Chart(pieCtx, {
+        type: 'pie',
+        data: {
+            labels: categoryLabels,
+            datasets: [{
+                data: categoryValues,
+                backgroundColor: colors,
+                borderColor: '#16213e',
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        color: '#e0e0e0',
+                        padding: 12,
+                        font: {
+                            size: 12,
+                            family: 'Poppins'
+                        }
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = ((context.parsed / total) * 100).toFixed(1);
+                            return context.label + ': $' + context.parsed.toFixed(2) + ' (' + percentage + '%)';
+                        }
+                    }
+                }
+            }
+        }
+    });
+    {% endif %}
+</script>
+
+{% endblock %}

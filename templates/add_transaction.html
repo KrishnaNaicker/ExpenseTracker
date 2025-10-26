@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+
+{% block title %}Add Transaction - Expense Tracker{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="fas fa-plus-circle"></i> Add Transaction</h1>
+    <p class="subtitle">Record your income or expense</p>
+</div>
+
+<div class="form-container">
+    <div class="card">
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('add_transaction') }}" id="transactionForm" novalidate>
+                <!-- Transaction Type -->
+                <div class="form-group">
+                    <label for="type">Transaction Type <span class="required">*</span></label>
+                    <div class="radio-group">
+                        <label class="radio-label">
+                            <input type="radio" name="type" value="income" id="typeIncome" required checked>
+                            <span class="radio-custom income">
+                                <i class="fas fa-arrow-up"></i> Income
+                            </span>
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="type" value="expense" id="typeExpense" required>
+                            <span class="radio-custom expense">
+                                <i class="fas fa-arrow-down"></i> Expense
+                            </span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Amount -->
+                <div class="form-group">
+                    <label for="amount">Amount <span class="required">*</span></label>
+                    <div class="input-group">
+                        <span class="input-prefix">$</span>
+                        <input type="number" 
+                               class="form-control" 
+                               id="amount" 
+                               name="amount" 
+                               placeholder="0.00" 
+                               step="0.01" 
+                               min="0.01" 
+                               required>
+                    </div>
+                    <small class="form-text">Enter the transaction amount</small>
+                </div>
+
+                <!-- Category -->
+                <div class="form-group">
+                    <label for="category">Category <span class="required">*</span></label>
+                    <select class="form-control" id="category" name="category" required>
+                        <option value="">Select a category</option>
+                        {% for cat in categories %}
+                        <option value="{{ cat }}">{{ cat }}</option>
+                        {% endfor %}
+                    </select>
+                    <small class="form-text">Choose the transaction category</small>
+                </div>
+
+                <!-- Date -->
+                <div class="form-group">
+                    <label for="date">Date <span class="required">*</span></label>
+                    <input type="date" 
+                           class="form-control" 
+                           id="date" 
+                           name="date" 
+                           required>
+                    <small class="form-text">When did this transaction occur?</small>
+                </div>
+
+                <!-- Description -->
+                <div class="form-group">
+                    <label for="description">Description</label>
+                    <textarea class="form-control" 
+                              id="description" 
+                              name="description" 
+                              rows="3" 
+                              placeholder="Add notes about this transaction (optional)"></textarea>
+                    <small class="form-text">Optional: Add details about this transaction</small>
+                </div>
+
+                <!-- Submit Buttons -->
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Save Transaction
+                    </button>
+                    <a href="{{ url_for('index') }}" class="btn btn-secondary">
+                        <i class="fas fa-times"></i> Cancel
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Quick Tips -->
+    <div class="card tips-card">
+        <div class="card-header">
+            <h3><i class="fas fa-lightbulb"></i> Quick Tips</h3>
+        </div>
+        <div class="card-body">
+            <ul class="tips-list">
+                <li><i class="fas fa-check-circle"></i> Always categorize your transactions accurately</li>
+                <li><i class="fas fa-check-circle"></i> Add descriptions for better tracking</li>
+                <li><i class="fas fa-check-circle"></i> Record transactions as soon as they happen</li>
+                <li><i class="fas fa-check-circle"></i> Review your spending patterns regularly</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Set today's date as default
+    document.getElementById('date').valueAsDate = new Date();
+    
+    // Update category options based on transaction type
+    const typeIncome = document.getElementById('typeIncome');
+    const typeExpense = document.getElementById('typeExpense');
+    const categorySelect = document.getElementById('category');
+    
+    const allCategories = {{ categories|tojson }};
+    const expenseCategories = allCategories.filter(cat => cat !== 'Salary');
+    const incomeCategories = ['Salary', 'Other'];
+    
+    function updateCategories() {
+        const isIncome = typeIncome.checked;
+        const categories = isIncome ? incomeCategories : expenseCategories;
+        
+        categorySelect.innerHTML = '<option value="">Select a category</option>';
+        categories.forEach(cat => {
+            const option = document.createElement('option');
+            option.value = cat;
+            option.textContent = cat;
+            categorySelect.appendChild(option);
+        });
+    }
+    
+    typeIncome.addEventListener('change', updateCategories);
+    typeExpense.addEventListener('change', updateCategories);
+    
+    // Initialize with expense categories (default)
+    updateCategories();
+</script>
+
+{% endblock %}

@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+
+{% block title %}Budget - Expense Tracker{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="fas fa-chart-pie"></i> Budget Management</h1>
+    <p class="subtitle">Set and track your spending limits</p>
+</div>
+
+<!-- Set Budget Form -->
+<div class="card">
+    <div class="card-header">
+        <h2><i class="fas fa-plus-circle"></i> Set Budget</h2>
+        <span class="card-subtitle">for {{ current_month_name }}</span>
+    </div>
+    <div class="card-body">
+        <form method="POST" action="{{ url_for('budget') }}" class="budget-form">
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="category">Category <span class="required">*</span></label>
+                    <select class="form-control" id="category" name="category" required>
+                        <option value="">Select category</option>
+                        {% for cat in categories %}
+                        <option value="{{ cat }}">{{ cat }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="amount">Budget Amount <span class="required">*</span></label>
+                    <div class="input-group">
+                        <span class="input-prefix">$</span>
+                        <input type="number" 
+                               class="form-control" 
+                               id="amount" 
+                               name="amount" 
+                               placeholder="0.00" 
+                               step="0.01" 
+                               min="0.01" 
+                               required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>&nbsp;</label>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Set Budget
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Budget Overview -->
+<div class="budget-overview">
+    <h2><i class="fas fa-list-alt"></i> Current Budgets</h2>
+    
+    {% if budget_data %}
+    <div class="budget-grid">
+        {% for item in budget_data %}
+        <div class="budget-card {% if item.status == 'exceeded' %}exceeded{% elif item.status == 'warning' %}warning{% else %}safe{% endif %}">
+            <div class="budget-header">
+                <h3>{{ item.category }}</h3>
+                <div class="budget-status-icon">
+                    {% if item.status == 'exceeded' %}
+                    <i class="fas fa-exclamation-circle"></i>
+                    {% elif item.status == 'warning' %}
+                    <i class="fas fa-exclamation-triangle"></i>
+                    {% else %}
+                    <i class="fas fa-check-circle"></i>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="budget-amounts">
+                <div class="budget-stat">
+                    <span class="label">Budget</span>
+                    <span class="value">{{ item.budget|currency }}</span>
+                </div>
+                <div class="budget-stat">
+                    <span class="label">Spent</span>
+                    <span class="value spent">{{ item.spent|currency }}</span>
+                </div>
+                <div class="budget-stat">
+                    <span class="label">Remaining</span>
+                    <span class="value {% if item.remaining >= 0 %}remaining{% else %}exceeded-amount{% endif %}">
+                        {{ item.remaining|currency }}
+                    </span>
+                </div>
+            </div>
+            
+            <div class="budget-progress-bar">
+                <div class="progress-fill" style="width: {{ item.percentage }}%"></div>
+            </div>
+            
+            <div class="budget-percentage">
+                {{ item.percentage|round|int }}% used
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="no-data card">
+        <i class="fas fa-inbox"></i>
+        <p>No budgets set for this month</p>
+        <p class="hint">Set your first budget using the form above</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Budget Tips -->
+<div class="card tips-card">
+    <div class="card-header">
+        <h3><i class="fas fa-lightbulb"></i> Budget Tips</h3>
+    </div>
+    <div class="card-body">
+        <div class="tips-grid">
+            <div class="tip-item">
+                <i class="fas fa-bullseye"></i>
+                <h4>Be Realistic</h4>
+                <p>Set achievable budgets based on your actual spending patterns</p>
+            </div>
+            <div class="tip-item">
+                <i class="fas fa-chart-line"></i>
+                <h4>Monitor Regularly</h4>
+                <p>Check your budget status weekly to stay on track</p>
+            </div>
+            <div class="tip-item">
+                <i class="fas fa-bell"></i>
+                <h4>Watch Alerts</h4>
+                <p>Pay attention when you reach 80% of your budget</p>
+            </div>
+            <div class="tip-item">
+                <i class="fas fa-calendar-check"></i>
+                <h4>Review Monthly</h4>
+                <p>Adjust your budgets at the start of each month</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

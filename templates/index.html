@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Expense Tracker{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="fas fa-home"></i> Dashboard</h1>
+    <p class="subtitle">Overview of your financial status</p>
+</div>
+
+<!-- Statistics Cards -->
+<div class="stats-grid">
+    <div class="stat-card income-card">
+        <div class="stat-icon">
+            <i class="fas fa-arrow-up"></i>
+        </div>
+        <div class="stat-details">
+            <h3>Total Income</h3>
+            <p class="stat-value">{{ stats.income|currency }}</p>
+            <span class="stat-label">All time</span>
+        </div>
+    </div>
+
+    <div class="stat-card expense-card">
+        <div class="stat-icon">
+            <i class="fas fa-arrow-down"></i>
+        </div>
+        <div class="stat-details">
+            <h3>Total Expenses</h3>
+            <p class="stat-value">{{ stats.expenses|currency }}</p>
+            <span class="stat-label">All time</span>
+        </div>
+    </div>
+
+    <div class="stat-card balance-card">
+        <div class="stat-icon">
+            <i class="fas fa-wallet"></i>
+        </div>
+        <div class="stat-details">
+            <h3>Current Balance</h3>
+            <p class="stat-value {% if stats.balance >= 0 %}positive{% else %}negative{% endif %}">
+                {{ stats.balance|currency }}
+            </p>
+            <span class="stat-label">Available</span>
+        </div>
+    </div>
+
+    <div class="stat-card month-card">
+        <div class="stat-icon">
+            <i class="fas fa-calendar-alt"></i>
+        </div>
+        <div class="stat-details">
+            <h3>This Month</h3>
+            <p class="stat-value">{{ month_stats.expenses|currency }}</p>
+            <span class="stat-label">Expenses</span>
+        </div>
+    </div>
+</div>
+
+<!-- Budget Alerts -->
+{% if budget_alerts %}
+<div class="alerts-section">
+    <h2><i class="fas fa-exclamation-triangle"></i> Budget Alerts</h2>
+    <div class="alerts-grid">
+        {% for alert in budget_alerts %}
+        <div class="alert-card alert-{{ alert.status }}">
+            <div class="alert-header">
+                <h4>{{ alert.category }}</h4>
+                <span class="alert-badge">{{ alert.percentage|round|int }}%</span>
+            </div>
+            <div class="alert-body">
+                <p>Spent: {{ alert.spent|currency }} / {{ alert.budget|currency }}</p>
+                <div class="alert-progress">
+                    <div class="progress-bar" style="width: {{ alert.percentage }}%"></div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Charts and Recent Transactions -->
+<div class="dashboard-grid">
+    <!-- Category Breakdown Chart -->
+    <div class="card chart-card">
+        <div class="card-header">
+            <h2><i class="fas fa-chart-pie"></i> Expense Breakdown</h2>
+            <span class="card-subtitle">This Month</span>
+        </div>
+        <div class="card-body">
+            {% if category_data %}
+            <canvas id="categoryChart"></canvas>
+            {% else %}
+            <div class="no-data">
+                <i class="fas fa-inbox"></i>
+                <p>No expense data for this month</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Recent Transactions -->
+    <div class="card">
+        <div class="card-header">
+            <h2><i class="fas fa-clock"></i> Recent Transactions</h2>
+            <a href="{{ url_for('view_transactions') }}" class="view-all-link">View All</a>
+        </div>
+        <div class="card-body">
+            {% if recent_transactions %}
+            <div class="transactions-list">
+                {% for transaction in recent_transactions %}
+                <div class="transaction-item">
+                    <div class="transaction-icon {{ transaction.type }}">
+                        {% if transaction.type == 'income' %}
+                        <i class="fas fa-plus"></i>
+                        {% else %}
+                        <i class="fas fa-minus"></i>
+                        {% endif %}
+                    </div>
+                    <div class="transaction-details">
+                        <h4>{{ transaction.category }}</h4>
+                        <p class="transaction-desc">{{ transaction.description[:30] }}{% if transaction.description|length > 30 %}...{% endif %}</p>
+                        <span class="transaction-date">{{ transaction.date.strftime('%b %d, %Y') }}</span>
+                    </div>
+                    <div class="transaction-amount {{ transaction.type }}">
+                        {% if transaction.type == 'income' %}+{% else %}-{% endif %}{{ transaction.amount|currency }}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="no-data">
+                <i class="fas fa-inbox"></i>
+                <p>No transactions yet</p>
+                <a href="{{ url_for('add_transaction') }}" class="btn btn-primary">Add First Transaction</a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Chart.js Script -->
+{% if category_data %}
+<script>
+    const categoryData = {{ category_data|tojson }};
+    const labels = Object.keys(categoryData);
+    const data = Object.values(categoryData);
+    
+    const colors = [
+        '#3282b8', '#0f4c75', '#2ecc71', '#e74c3c', 
+        '#f39c12', '#9b59b6', '#1abc9c', '#34495e'
+    ];
+    
+    const ctx = document.getElementById('categoryChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: data,
+                backgroundColor: colors,
+                borderColor: '#16213e',
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        color: '#e0e0e0',
+                        padding: 15,
+                        font: {
+                            size: 12,
+                            family: 'Poppins'
+                        }
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return context.label + ': $' + context.parsed.toFixed(2);
+                        }
+                    }
+                }
+            }
+        }
+    });
+</script>
+{% endif %}
+
+{% endblock %}
